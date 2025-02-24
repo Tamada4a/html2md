@@ -4,13 +4,15 @@ plugins {
 }
 
 group = 'org.github.Tamada4a'
-version = '1.0.1'
+version = '1.0.2'
 
 repositories {
     mavenCentral()
 }
 
 java {
+    sourceCompatibility = JavaVersion.toVersion("17")
+    targetCompatibility = JavaVersion.toVersion("17")
     withJavadocJar()
     withSourcesJar()
 }
