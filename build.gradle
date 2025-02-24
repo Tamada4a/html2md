@@ -1,9 +1,10 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
-group = 'io.github.furstenheim'
-version = '1.0-SNAPSHOT'
+group = 'org.github.Tamada4a'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
@@ -23,6 +24,18 @@ dependencies {
             'org.hamcrest:hamcrest:3.0',
             'com.shazam:shazamcrest:0.11'
     )
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            from components.java
+        }
+    }
 }
 
 test {
