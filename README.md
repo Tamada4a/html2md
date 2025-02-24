@@ -2,20 +2,41 @@
 Convert HTML into Markdown with Java.
 
 ### Installation
-Gradle:
+#### Gradle:
+- Add the JitPack repository to your `build.gradle` file:
+```gradle
+repositories {
+    ...
+    maven { url 'https://jitpack.io' }
+}
+```
+- Add the dependency:
 ```gradle
 dependencies {
-    compile 'io.github.furstenheim:copy_down:1.1'
+    ...
+    implementation 'com.github.Tamada4a:html2pdf:1.0.0'
 }
 ```
 
-Maven:
+#### Maven:
+- Add the JitPack repository to your `pom.xml` file:
+```xml
+<repositories>
+    ...
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+```
+- Add the dependency:
 ```xml
 <dependencies>
+    ...
     <dependency>
-        <groupId>io.github.furstenheim</groupId>
-        <artifactId>copy_down</artifactId>
-        <version>1.1</version>
+        <groupId>com.github.Tamada4a</groupId>
+        <artifactId>html2pdf</artifactId>
+        <version>1.0.0</version>
     </dependency>
 </dependencies>
 ```
@@ -40,10 +61,40 @@ import io.github.furstenheim.CopyDown;
 public class Main {
     public static void main (String[] args) {
         CopyDown converter = new CopyDown();
-        String myHtml = "<h1>Some title</h1><div>Some html<p>Another paragraph</p></div>";
+        String myHtml = """
+                <h1>Some title</h1>
+                <div>
+                    Some html<p>Another paragraph</p>
+                </div>
+                <table>
+                  <tr>
+                    <td>Emil</td>
+                    <td>Tobias</td>
+                    <td>Linus</td>
+                  </tr>
+                  <tr>
+                    <td>16</td>
+                    <td>14</td>
+                    <td>10</td>
+                  </tr>
+                </table>
+                """;
         String markdown = converter.convert(myHtml);
         System.out.println(markdown);
-        // Some title\n==========\n\nSome html\n\nAnother paragraph\n
+        /*
+        *        Prints following:
+        *        
+        *        Some title
+        *        ==========
+        *        
+        *        Some html
+        *        
+        *        Another paragraph
+        *        
+        *        | Emil | Tobias | Linus |
+        *        | --- | --- | --- |
+        *        | 16 | 14 | 10 |
+        */
     }
 }
 ```
@@ -92,3 +143,5 @@ This library is a port to Java of the wonderful library [Turndown.js](https://gi
 The support to convert tables to markdown is ported from the [turndown-plugin-gfm](https://github.com/mixmark-io/turndown-plugin-gfm) library. It uses also the same test as that library.
 
 This project is supported by Intellij open source license
+
+Forked from [here](https://github.com/tijder/copy-down).
