@@ -14,7 +14,7 @@ repositories {
 ```gradle
 dependencies {
     ...
-    implementation 'com.github.Tamada4a:html2pdf:1.0.0'
+    implementation 'com.github.Tamada4a:html2pdf:-8bf01562a6-1'
 }
 ```
 
@@ -36,7 +36,7 @@ dependencies {
     <dependency>
         <groupId>com.github.Tamada4a</groupId>
         <artifactId>html2pdf</artifactId>
-        <version>1.0.0</version>
+        <version>-8bf01562a6-1</version>
     </dependency>
 </dependencies>
 ```
