@@ -5,6 +5,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import io.github.furstenheim.copy.CopyDown;
+import io.github.furstenheim.enums.CodeBlockStyle;
+import io.github.furstenheim.enums.HeadingStyle;
+import io.github.furstenheim.enums.LinkReferenceStyle;
+import io.github.furstenheim.enums.LinkStyle;
+import io.github.furstenheim.options.OptionsBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,7 +30,7 @@ import static org.hamcrest.Matchers.equalTo;
 class CopyDownTest {
     @ParameterizedTest
     @MethodSource("testCases")
-    public void mainTest(String name, TestCase testCase) {
+    public void mainTest(String name, @NotNull TestCase testCase) {
         CopyDown copyDown;
         if (testCase.options.isJsonNull()) {
             copyDown = new CopyDown();
@@ -67,18 +74,19 @@ class CopyDownTest {
 
     }
 
-    public static Stream<Arguments> testCases () throws IOException {
+    public static Stream<Arguments> testCases() throws IOException {
         String jsonFile = new String(Files.readAllBytes(Paths.get(
                 "src/test/resources/tests.json")));
         JsonElement commandsAsJson = JsonParser.parseString(jsonFile);
-        Type listType = new TypeToken<List<TestCase>>() {}.getType();
+        Type listType = new TypeToken<List<TestCase>>() {
+        }.getType();
 
         List<TestCase> testCases = new Gson().fromJson(commandsAsJson, listType);
         return testCases.stream().map(tc -> Arguments.of(tc.name, tc));
     }
 
     @Test
-    public void convertRealWebsite() throws IOException{
+    public void convertRealWebsite() throws IOException {
         String html = new String(Files.readAllBytes(Paths.get(
                 "src/test/resources/gastronomia_y_cia_1.html")));
         String convert = new CopyDown().convert(html);
