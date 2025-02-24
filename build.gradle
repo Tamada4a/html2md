@@ -4,11 +4,22 @@ plugins {
 }
 
 group = 'org.github.Tamada4a'
-version = '1.0.0'
+version = '1.0.1'
 
 repositories {
     mavenCentral()
 }
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    (options as StandardJavadocDocletOptions).addBooleanOption("Xdoclint:none", true)
+    (options as StandardJavadocDocletOptions).addStringOption("encoding", "utf8")
+}
+
 
 dependencies {
     implementation(
