@@ -1,5 +1,8 @@
-package io.github.furstenheim;
+package io.github.furstenheim.copy;
 
+import io.github.furstenheim.whitespace.WhitespaceCollapser;
+import io.github.furstenheim.util.NodeUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -10,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-class CopyNode {
+public class CopyNode {
     private static final String[] VOID_ELEMENTS = {
             "area", "base", "br", "col", "command", "embed", "hr", "img", "input",
             "keygen", "link", "meta", "param", "source", "track", "wbr"
@@ -18,7 +21,7 @@ class CopyNode {
     private static final String[] MEANINGFUL_WHEN_BLANK_ELEMENTS = {
             "a", "table", "thead", "tbody", "tfoot", "th", "td", "iframe", "script",
             "audio", "video"
-            };
+    };
 
     private static final String[] BLOCK_ELEMENTS = {
             "address", "article", "aside", "audio", "blockquote", "body", "canvas",
@@ -27,16 +30,16 @@ class CopyNode {
             "hgroup", "hr", "html", "isindex", "li", "main", "menu", "nav", "noframes",
             "noscript", "ol", "output", "p", "pre", "section", "table", "tbody", "td",
             "tfoot", "th", "thead", "tr", "ul"
-            };
+    };
 
     private static Set<String> VOID_ELEMENTS_SET = null;
     private static Set<String> MEANINGFUL_WHEN_BLANK_ELEMENTS_SET = null;
     private static Set<String> BLOCK_ELEMENTS_SET = null;
 
-    Node element;
-    CopyNode parent;
+    public Node element;
+    public CopyNode parent;
 
-    CopyNode (String input) {
+    public CopyNode(String input) {
         Document document = Jsoup.parse(
                 // DOM parsers arrange elements in the <head> and <body>.
                 // Wrapping in a custom element ensures elements are reliably arranged in
@@ -47,37 +50,38 @@ class CopyNode {
         element = root;
     }
 
-    CopyNode (Node node, CopyNode parent) {
+    public CopyNode(Node node, CopyNode parent) {
         element = node;
         this.parent = parent;
     }
 
-    boolean isCode () {
+    public boolean isCode() {
         // TODO cache in property to avoid escalating to root
         return element.nodeName().equals("code") || (parent != null && parent.isCode());
     }
 
-    static boolean isBlank (Node element) {
+    public static boolean isBlank(Node element) {
         String textContent;
         if (element instanceof Element) {
-            textContent = ((Element)element).wholeText();
+            textContent = ((Element) element).wholeText();
         } else {
             textContent = element.outerHtml();
         }
         return !isVoid(element) &&
-               !isMeaningfulWhenBlank(element) &&
-               // TODO check text is the same as textContent in browser
-               Pattern.compile("(?i)^\\s*$").matcher(textContent).find() &&
-               !hasVoidNodesSet(element) &&
-               !hasMeaningfulWhenBlankNodesSet(element);
+                !isMeaningfulWhenBlank(element) &&
+                // TODO check text is the same as textContent in browser
+                Pattern.compile("(?i)^\\s*$").matcher(textContent).find() &&
+                !hasVoidNodesSet(element) &&
+                !hasMeaningfulWhenBlankNodesSet(element);
     }
-    FlankingWhiteSpaces flankingWhitespace () {
+
+    public FlankingWhiteSpaces flankingWhitespace() {
         String leading = "";
         String trailing = "";
         if (!isBlock(element)) {
             String textContent;
             if (element instanceof Element) {
-                textContent = ((Element)element).wholeText();
+                textContent = ((Element) element).wholeText();
             } else {
                 textContent = element.outerHtml();
             }
@@ -100,13 +104,15 @@ class CopyNode {
         return new FlankingWhiteSpaces(leading, trailing);
     }
 
-    private boolean isLeftFlankedByWhitespaces () {
+    private boolean isLeftFlankedByWhitespaces() {
         return isChildFlankedByWhitespaces(" $", element.previousSibling());
     }
-    private boolean isRightFlankedByWhitespaces () {
+
+    private boolean isRightFlankedByWhitespaces() {
         return isChildFlankedByWhitespaces("^ ", element.nextSibling());
     }
-    private boolean isChildFlankedByWhitespaces (String regex, Node sibling) {
+
+    private boolean isChildFlankedByWhitespaces(String regex, Node sibling) {
         if (sibling == null) {
             return false;
         }
@@ -121,22 +127,23 @@ class CopyNode {
         return false;
     }
 
-    private static boolean hasVoidNodesSet (Node node) {
-        if (!(node instanceof Element)) {
+    private static boolean hasVoidNodesSet(Node node) {
+        if (!(node instanceof Element element)) {
             return false;
         }
-        Element element = (Element) node;
 
-        for (String tagName: VOID_ELEMENTS_SET) {
-            if (element.getElementsByTag(tagName).size() != 0) {
+        for (String tagName : VOID_ELEMENTS_SET) {
+            if (!element.getElementsByTag(tagName).isEmpty()) {
                 return true;
             }
         }
         return false;
     }
-    static boolean isVoid (Node element) {
+
+    public static boolean isVoid(@NotNull Node element) {
         return getVoidNodesSet().contains(element.nodeName());
     }
+
     private static Set<String> getVoidNodesSet() {
         if (VOID_ELEMENTS_SET != null) {
             return VOID_ELEMENTS_SET;
@@ -145,21 +152,22 @@ class CopyNode {
         return VOID_ELEMENTS_SET;
     }
 
-    private static boolean hasMeaningfulWhenBlankNodesSet (Node node) {
-        if (!(node instanceof Element)) {
+    private static boolean hasMeaningfulWhenBlankNodesSet(Node node) {
+        if (!(node instanceof Element element)) {
             return false;
         }
-        Element element = (Element) node;
-        for (String tagName: MEANINGFUL_WHEN_BLANK_ELEMENTS_SET) {
-            if (element.getElementsByTag(tagName).size() != 0) {
+        for (String tagName : MEANINGFUL_WHEN_BLANK_ELEMENTS_SET) {
+            if (!element.getElementsByTag(tagName).isEmpty()) {
                 return true;
             }
         }
         return false;
     }
-    private static boolean isMeaningfulWhenBlank (Node element) {
+
+    private static boolean isMeaningfulWhenBlank(@NotNull Node element) {
         return getMeaningfulWhenBlankNodesSet().contains(element.nodeName());
     }
+
     private static Set<String> getMeaningfulWhenBlankNodesSet() {
         if (MEANINGFUL_WHEN_BLANK_ELEMENTS_SET != null) {
             return MEANINGFUL_WHEN_BLANK_ELEMENTS_SET;
@@ -168,21 +176,22 @@ class CopyNode {
         return MEANINGFUL_WHEN_BLANK_ELEMENTS_SET;
     }
 
-    private boolean hasBlockNodesSet (Node node) {
-        if (!(node instanceof Element)) {
+    private boolean hasBlockNodesSet(Node node) {
+        if (!(node instanceof Element element)) {
             return false;
         }
-        Element element = (Element) node;
-        for (String tagName: BLOCK_ELEMENTS_SET) {
-            if (element.getElementsByTag(tagName).size() != 0) {
+        for (String tagName : BLOCK_ELEMENTS_SET) {
+            if (!element.getElementsByTag(tagName).isEmpty()) {
                 return true;
             }
         }
         return false;
     }
-    static boolean isBlock (Node element) {
+
+    public static boolean isBlock(@NotNull Node element) {
         return getBlockNodesSet().contains(element.nodeName());
     }
+
     private static Set<String> getBlockNodesSet() {
         if (BLOCK_ELEMENTS_SET != null) {
             return BLOCK_ELEMENTS_SET;
@@ -191,19 +200,19 @@ class CopyNode {
         return BLOCK_ELEMENTS_SET;
     }
 
-    static class FlankingWhiteSpaces {
-        String getLeading() {
+    public static class FlankingWhiteSpaces {
+        public String getLeading() {
             return leading;
         }
 
-        String getTrailing() {
+        public String getTrailing() {
             return trailing;
         }
 
         private final String leading;
         private final String trailing;
 
-        FlankingWhiteSpaces(String leading, String trailing) {
+        public FlankingWhiteSpaces(String leading, String trailing) {
             this.leading = leading;
             this.trailing = trailing;
         }

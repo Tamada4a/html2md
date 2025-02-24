@@ -1,5 +1,7 @@
-package io.github.furstenheim;
+package io.github.furstenheim.whitespace;
 
+import io.github.furstenheim.copy.CopyNode;
+import io.github.furstenheim.util.NodeUtils;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
@@ -8,21 +10,21 @@ import java.util.regex.Pattern;
 /**
  * The Whitespace collapser is originally adapted from collapse-whitespace
  * by Luc Thevenard.
- *
+ * <p>
  * The MIT License (MIT)
- *
+ * <p>
  * Copyright (c) 2014 Luc Thevenard <lucthevenard@gmail.com>
- *
+ * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * <p>
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * <p>
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,12 +34,13 @@ import java.util.regex.Pattern;
  * THE SOFTWARE.
  */
 
-class WhitespaceCollapser {
+public class WhitespaceCollapser {
     /**
      * Remove extraneous whitespace from the given element. Modifies the node in place
+     *
      * @param element
      */
-    void collapse (Node element) {
+    public void collapse(Node element) {
         if (element.childNodeSize() == 0 || isPre(element)) {
             return;
         }
@@ -52,10 +55,10 @@ class WhitespaceCollapser {
             if (NodeUtils.isNodeType3(node) || NodeUtils.isNodeType4(node)) {
                 TextNode textNode = (TextNode) node;
                 String value = textNode.attributes().get("#text").replaceAll("[ \\r\\n\\t]+", " ");
-                if ((prevText == null || Pattern.compile(" $").matcher(prevText.text()).find()) &&!prevVoid && value.charAt(0) == ' ') {
-            value = value.substring(1);
+                if ((prevText == null || Pattern.compile(" $").matcher(prevText.text()).find()) && !prevVoid && value.charAt(0) == ' ') {
+                    value = value.substring(1);
                 }
-                if (value.length() == 0) {
+                if (value.isEmpty()) {
                     node = remove(node);
                     continue;
                 }
@@ -66,7 +69,7 @@ class WhitespaceCollapser {
             } else if (NodeUtils.isNodeType1(node)) {
                 if (isBlock(node)) {
                     if (prevText != null) {
-                        prevText.text(prevText.text().replaceAll(" $",""));
+                        prevText.text(prevText.text().replaceAll(" $", ""));
                     }
                     prevText = null;
                     prevVoid = false;
@@ -85,9 +88,7 @@ class WhitespaceCollapser {
         }
         if (prevText != null) {
             prevText.text(prevText.text().replaceAll(" $", ""));
-            if (prevText.text() == null) {
-                remove(prevText);
-            }
+            prevText.text();
         }
 
     }
@@ -99,15 +100,16 @@ class WhitespaceCollapser {
      * @param {Node} node
      * @return {Node} node
      */
-    private Node remove (Node node) {
-        Node next = node.nextSibling() != null ? node.nextSibling() : (Node)node.parentNode();
+    private Node remove(Node node) {
+        Node next = node.nextSibling() != null ? node.nextSibling() : (Node) node.parentNode();
         node.remove();
         return next;
     }
+
     /**
      * Returns next node in the sequence given current and previous nodes
      */
-    private Node next (Node prev, Node current) {
+    private Node next(Node prev, Node current) {
         if ((prev != null && prev.parent() == current) || isPre(current)) {
             // TODO beware parentNode might not be element
             return current.nextSibling() != null ? current.nextSibling() : current.parentNode();
@@ -118,21 +120,21 @@ class WhitespaceCollapser {
         if (current.nextSibling() != null) {
             return current.nextSibling();
         }
-        return (Node)current.parentNode();
+        return (Node) current.parentNode();
     }
-    private boolean isPre (Node element) {
+
+    private boolean isPre(Node element) {
         // TODO allow to override with lambda in options
         return element.nodeName().equals("pre");
     }
 
-    private boolean isBlock (Node element) {
+    private boolean isBlock(Node element) {
         // TODO allow to override with lambda in options
-        return CopyNode.isBlock(element) ||  element.nodeName().equals("br");
+        return CopyNode.isBlock(element) || element.nodeName().equals("br");
     }
 
-    private boolean isVoid (Node element) {
+    private boolean isVoid(Node element) {
         // Allow to override
         return CopyNode.isVoid(element);
     }
-
 }

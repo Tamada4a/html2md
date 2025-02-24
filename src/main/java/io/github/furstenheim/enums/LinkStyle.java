@@ -1,4 +1,4 @@
-package io.github.furstenheim;
+package io.github.furstenheim.enums;
 
 public enum LinkStyle {
     INLINED,

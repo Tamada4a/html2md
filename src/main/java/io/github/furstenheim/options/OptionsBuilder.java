@@ -1,4 +1,11 @@
-package io.github.furstenheim;
+package io.github.furstenheim.options;
+
+import io.github.furstenheim.enums.CodeBlockStyle;
+import io.github.furstenheim.enums.HeadingStyle;
+import io.github.furstenheim.enums.LinkReferenceStyle;
+import io.github.furstenheim.enums.LinkStyle;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 public final class OptionsBuilder {
     private String br = "  ";
@@ -15,7 +22,8 @@ public final class OptionsBuilder {
     private OptionsBuilder() {
     }
 
-    public static OptionsBuilder anOptions() {
+    @Contract(value = " -> new", pure = true)
+    public static @NotNull OptionsBuilder anOptions() {
         return new OptionsBuilder();
     }
 
@@ -69,8 +77,9 @@ public final class OptionsBuilder {
         return this;
     }
 
-    public Options build() {
+    @Contract(value = " -> new", pure = true)
+    public @NotNull Options build() {
         return new Options(br, hr, emDelimiter, strongDelimiter, headingStyle, bulletListMaker, codeBlockStyle,
-                           linkStyle, linkReferenceStyle, fence);
+                linkStyle, linkReferenceStyle, fence);
     }
 }

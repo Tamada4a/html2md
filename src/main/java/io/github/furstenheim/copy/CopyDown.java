@@ -1,10 +1,23 @@
-package io.github.furstenheim;
+package io.github.furstenheim.copy;
 
+import io.github.furstenheim.enums.CodeBlockStyle;
+import io.github.furstenheim.enums.HeadingStyle;
+import io.github.furstenheim.enums.LinkStyle;
+import io.github.furstenheim.options.Options;
+import io.github.furstenheim.options.OptionsBuilder;
+import io.github.furstenheim.rule.Rule;
+import io.github.furstenheim.util.NodeUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,24 +25,25 @@ import java.util.regex.Pattern;
  * Main class of the package
  */
 public class CopyDown {
-    public CopyDown () {
+    public CopyDown() {
         this.options = OptionsBuilder.anOptions().build();
         setUp();
     }
 
-    public CopyDown (Options options) {
+    public CopyDown(Options options) {
         this.options = options;
         setUp();
     }
 
     /**
      * Accepts a HTML string and converts it to markdown
-     *
+     * <p>
      * Note, if LinkStyle is chosen to be REFERENCED the method is not thread safe.
+     *
      * @param input html to be converted
      * @return markdown text
      */
-    public String convert (String input) {
+    public String convert(String input) {
         references = new ArrayList<>();
         CopyNode copyRootNode = new CopyNode(input);
         String result = process(copyRootNode);
@@ -40,9 +54,10 @@ public class CopyDown {
     private final Options options;
     private List<String> references = null;
 
-    private void setUp () {
+    private void setUp() {
         rules = new Rules();
     }
+
     private static class Escape {
         String pattern;
         String replace;
@@ -52,6 +67,7 @@ public class CopyDown {
             this.replace = replace;
         }
     }
+
     private final List<Escape> escapes = Arrays.asList(
             new Escape("\\\\", "\\\\\\\\"),
             new Escape("\\*", "\\\\*"),
@@ -68,22 +84,23 @@ public class CopyDown {
             new Escape("^(\\d+)\\. ", "$1\\\\. ")
     );
 
-    private String postProcess (String output) {
-        for (Rule rule: rules.rules) {
+    private @NotNull String postProcess(String output) {
+        for (Rule rule : rules.rules) {
             if (rule.getAppend() != null) {
                 output = join(output, rule.getAppend().get());
             }
         }
         return output.replaceAll("^[\\t\\n\\r]+", "").replaceAll("[\\t\\r\\n\\s]+$", "");
     }
-    private String process (CopyNode node) {
+
+    private String process(@NotNull CopyNode node) {
         String result = "";
         for (Node child : node.element.childNodes()) {
             CopyNode copyNodeChild = new CopyNode(child, node);
             String replacement = "";
             if (NodeUtils.isNodeType3(child)) {
                 // TODO it should be child.nodeValue
-                replacement = copyNodeChild.isCode() ? ((TextNode)child).text() : escape(((TextNode)child).text());
+                replacement = copyNodeChild.isCode() ? ((TextNode) child).text() : escape(((TextNode) child).text());
             } else if (NodeUtils.isNodeType1(child)) {
                 replacement = replacementForNode(copyNodeChild);
             }
@@ -91,19 +108,22 @@ public class CopyDown {
         }
         return result;
     }
-    private String replacementForNode (CopyNode node) {
+
+    private @NotNull String replacementForNode(@NotNull CopyNode node) {
         Rule rule = rules.findRule(node.element);
         String content = process(node);
         CopyNode.FlankingWhiteSpaces flankingWhiteSpaces = node.flankingWhitespace();
-        if (flankingWhiteSpaces.getLeading().length() > 0 || flankingWhiteSpaces.getTrailing().length() > 0) {
+        if (!flankingWhiteSpaces.getLeading().isEmpty() || !flankingWhiteSpaces.getTrailing().isEmpty()) {
             content = content.trim();
         }
         return flankingWhiteSpaces.getLeading() + rule.getReplacement().apply(content, node.element)
-         + flankingWhiteSpaces.getTrailing();
+                + flankingWhiteSpaces.getTrailing();
     }
+
     private static final Pattern leadingNewLinePattern = Pattern.compile("^(\n*)");
     private static final Pattern trailingNewLinePattern = Pattern.compile("(\n*)$");
-    private String join (String string1, String string2) {
+
+    private @NotNull String join(String string1, String string2) {
         Matcher trailingMatcher = trailingNewLinePattern.matcher(string1);
         trailingMatcher.find();
         Matcher leadingMatcher = leadingNewLinePattern.matcher(string2);
@@ -115,7 +135,7 @@ public class CopyDown {
                 + leadingMatcher.replaceAll("");
     }
 
-    private String escape (String string) {
+    private String escape(String string) {
         for (Escape escape : escapes) {
             string = string.replaceAll(escape.pattern, escape.replace);
         }
@@ -125,12 +145,14 @@ public class CopyDown {
     class Rules {
         private List<Rule> rules;
 
-        public Rules () {
+        public Rules() {
             this.rules = new ArrayList<>();
 
-            addRule("blankReplacement", new Rule((element) -> CopyNode.isBlank(element), (content, element) ->
+            addRule("blankReplacement", new Rule(CopyNode::isBlank, (content, element) ->
                     CopyNode.isBlock(element) ? "\n\n" : ""));
-            addRule("paragraph", new Rule("p", (content, element) -> {return "\n\n" + content + "\n\n";}));
+            addRule("paragraph", new Rule("p", (content, element) -> {
+                return "\n\n" + content + "\n\n";
+            }));
             addRule("br", new Rule("br", (content, element) -> {
                 // If the br tag is in a table keep the br tag. Otherwise, the table will not work in markdown.
                 if (element.parentNode() != null && Arrays.asList("td", "th").contains(element.parentNode().nodeName().toLowerCase())) {
@@ -139,7 +161,7 @@ public class CopyDown {
                     return options.br + "\n";
                 }
             }));
-            addRule("heading", new Rule(new String[]{"h1", "h2", "h3", "h4", "h5", "h6" }, (content, element) -> {
+            addRule("heading", new Rule(new String[]{"h1", "h2", "h3", "h4", "h5", "h6"}, (content, element) -> {
                 Integer hLevel = Integer.parseInt(element.nodeName().substring(1, 2));
                 if (options.headingStyle == HeadingStyle.SETEXT && hLevel < 3) {
                     String underline = String.join("", Collections.nCopies(content.length(), hLevel == 1 ? "=" : "-"));
@@ -153,9 +175,9 @@ public class CopyDown {
                 content = content.replaceAll("(?m)^", "> ");
                 return "\n\n" + content + "\n\n";
             }));
-            addRule("list", new Rule(new String[] { "ul", "ol" }, (content, element) -> {
+            addRule("list", new Rule(new String[]{"ul", "ol"}, (content, element) -> {
                 Element parent = (Element) element.parentNode();
-                if (parent.nodeName().equals("li") && parent.child(parent.childrenSize() - 1) == element) {
+                if (parent.nodeName() != null && parent.nodeName().equals("li") && parent.child(parent.childrenSize() - 1) == element) {
                     return "\n" + content;
                 } else {
                     return "\n\n" + content + "\n\n";
@@ -166,36 +188,36 @@ public class CopyDown {
                         .replaceAll("\n+$", "\n") // remove trailing new lines with just a single one
                         .replaceAll("(?m)\n", "\n    "); // indent
                 String prefix = options.bulletListMaker + "   ";
-                Element parent = (Element)element.parentNode();
-                if (parent.nodeName().equals("ol")) {
+                Element parent = (Element) element.parentNode();
+                if (parent.nodeName() != null && parent.nodeName().equals("ol")) {
                     String start = parent.attr("start");
                     int index = parent.children().indexOf(element);
                     int parsedStart = 1;
-                    if (start.length() != 0) {
+                    if (!start.isEmpty()) {
                         try {
-                            parsedStart = Integer.valueOf(start);
+                            parsedStart = Integer.parseInt(start);
                         } catch (NumberFormatException e) {
                             e.printStackTrace();
                         }
                     }
                     prefix = String.valueOf(parsedStart + index) + ".  ";
                 }
-                return prefix + content + (element.nextSibling() != null && !Pattern.compile("\n$").matcher(content).find() ? "\n": "");
+                return prefix + content + (element.nextSibling() != null && !Pattern.compile("\n$").matcher(content).find() ? "\n" : "");
             }));
             addRule("indentedCodeBlock", new Rule((element) -> {
                 return options.codeBlockStyle == CodeBlockStyle.INDENTED
-                       && element.nodeName().equals("pre")
-                       && element.childNodeSize() > 0
-                       && element.childNode(0).nodeName().equals("code");
+                        && element.nodeName().equals("pre")
+                        && element.childNodeSize() > 0
+                        && element.childNode(0).nodeName().equals("code");
             }, (content, element) -> {
                 // TODO check textContent
-                return "\n\n    " + ((Element)element.childNode(0)).wholeText().replaceAll("\n", "\n    ");
+                return "\n\n    " + ((Element) element.childNode(0)).wholeText().replaceAll("\n", "\n    ");
             }));
             addRule("fencedCodeBock", new Rule((element) -> {
                 return options.codeBlockStyle == CodeBlockStyle.FENCED
-                       && element.nodeName().equals("pre")
-                       && element.childNodeSize() > 0
-                       && element.childNode(0).nodeName().equals("code");
+                        && element.nodeName().equals("pre")
+                        && element.childNodeSize() > 0
+                        && element.childNode(0).nodeName().equals("code");
             }, (content, element) -> {
                 String childClass = element.childNode(0).attr("class");
                 if (childClass == null) {
@@ -209,7 +231,7 @@ public class CopyDown {
 
                 String code;
                 if (element.childNode(0) instanceof Element) {
-                    code = ((Element)element.childNode(0)).wholeText();
+                    code = ((Element) element.childNode(0)).wholeText();
                 } else {
                     code = element.childNode(0).outerHtml();
                 }
@@ -222,13 +244,13 @@ public class CopyDown {
                     fenceSize = Math.max(group.length() + 1, fenceSize);
                 }
                 String fence = String.join("", Collections.nCopies(fenceSize, fenceChar));
-                if (code.length() > 0 && code.charAt(code.length() - 1) == '\n') {
+                if (!code.isEmpty() && code.charAt(code.length() - 1) == '\n') {
                     code = code.substring(0, code.length() - 1);
                 }
                 return (
                         "\n\n" + fence + language + "\n" + code
-                         + "\n" + fence + "\n\n"
-                        );
+                                + "\n" + fence + "\n\n"
+                );
             }));
 
             addRule("horizontalRule", new Rule("hr", (content, element) -> {
@@ -236,24 +258,24 @@ public class CopyDown {
             }));
             addRule("inlineLink", new Rule((element) -> {
                 return options.linkStyle == LinkStyle.INLINED
-                       && element.nodeName().equals("a")
-                       && element.attr("href").length() != 0;
+                        && element.nodeName().equals("a")
+                        && !element.attr("href").isEmpty();
             }, (content, element) -> {
                 String href = element.attr("href");
                 String title = cleanAttribute(element.attr("title"));
-                if (title.length() != 0) {
+                if (!title.isEmpty()) {
                     title = " \"" + title + "\"";
                 }
-                return "["+ content + "](" + href + title + ")";
+                return "[" + content + "](" + href + title + ")";
             }));
             addRule("referenceLink", new Rule((element) -> {
                 return options.linkStyle == LinkStyle.REFERENCED
-                       && element.nodeName().equals("a")
-                       && element.attr("href").length() != 0;
+                        && element.nodeName().equals("a")
+                        && !element.attr("href").isEmpty();
             }, (content, element) -> {
                 String href = element.attr("href");
                 String title = cleanAttribute(element.attr("title"));
-                if (title.length() != 0) {
+                if (!title.isEmpty()) {
                     title = " \"" + title + "\"";
                 }
                 String replacement;
@@ -277,19 +299,19 @@ public class CopyDown {
                 return replacement;
             }, () -> {
                 String referenceString = "";
-                if (references.size() > 0) {
+                if (!references.isEmpty()) {
                     referenceString = "\n\n" + String.join("\n", references) + "\n\n";
                 }
                 return referenceString;
             }));
             addRule("emphasis", new Rule(new String[]{"em", "i"}, (content, element) -> {
-                if (content.trim().length() == 0) {
+                if (content.trim().isEmpty()) {
                     return "";
                 }
                 return options.emDelimiter + content + options.emDelimiter;
             }));
             addRule("strong", new Rule(new String[]{"strong", "b"}, (content, element) -> {
-                if (content.trim().length() == 0) {
+                if (content.trim().isEmpty()) {
                     return "";
                 }
                 return options.strongDelimiter + content + options.strongDelimiter;
@@ -299,7 +321,7 @@ public class CopyDown {
                 boolean isCodeBlock = element.parentNode().nodeName().equals("pre") && !hasSiblings;
                 return element.nodeName().equals("code") && !isCodeBlock;
             }, (content, element) -> {
-                if (content.trim().length() == 0) {
+                if (content.trim().isEmpty()) {
                     return "";
                 }
                 String delimiter = "`";
@@ -330,12 +352,12 @@ public class CopyDown {
             addRule("img", new Rule("img", (content, element) -> {
                 String alt = cleanAttribute(element.attr("alt"));
                 String src = element.attr("src");
-                if (src.length() == 0) {
+                if (src.isEmpty()) {
                     return "";
                 }
                 String title = cleanAttribute(element.attr("title"));
                 String titlePart = "";
-                if (title.length() != 0) {
+                if (!title.isEmpty()) {
                     titlePart = " \"" + title + "\"";
                 }
                 return "![" + alt + "]" + "(" + src + titlePart + ")";
@@ -357,19 +379,19 @@ public class CopyDown {
                         borderCells.append(cell(border, element.childNode(i), true));
                     }
                 }
-                return "\n" + content + ((borderCells.length() > 0) ? '\n' + borderCells.toString() : "");
+                return "\n" + content + ((!borderCells.isEmpty()) ? '\n' + borderCells.toString() : "");
             }));
             addRule("tableSection", new Rule(new String[]{"thead", "tbody", "tfoot"}, (content, element) -> content));
             addRule("default", new Rule((element -> true), (content, element) -> CopyNode.isBlock(element) ? "\n\n" + content + "\n\n" : content));
         }
 
-        private String cell(String content, Node element, boolean borderCell) {
+        private @NotNull String cell(String content, @NotNull Node element, boolean borderCell) {
             String prefix = " ";
             StringBuilder result;
             if (element.siblingIndex() == 0) prefix = "| ";
             result = new StringBuilder(prefix + content + " |");
             try {
-                int colspan = Integer.parseInt(element.attr("colspan")) -1;
+                int colspan = Integer.parseInt(element.attr("colspan")) - 1;
                 String colspanContent = borderCell ? " " + content + " |" : " |";
                 result.append(colspanContent.repeat(Math.max(0, colspan)));
             } catch (NumberFormatException e) {
@@ -380,7 +402,7 @@ public class CopyDown {
         // A tableRow is a heading row if:
         // - the parent is a THEAD
         // - or if it's the first child of the TABLE or the first TBODY
-        private boolean isHeadingRow(Node tableRow) {
+        private boolean isHeadingRow(@NotNull Node tableRow) {
             var parentNode = tableRow.parentNode();
             assert parentNode != null;
             return (
@@ -392,7 +414,7 @@ public class CopyDown {
             );
         }
 
-        private boolean isFirstTbody(Node element) {
+        private boolean isFirstTbody(@NotNull Node element) {
             var previousSibling = element.previousSibling();
             return (
                     element.nodeName().equalsIgnoreCase("TBODY") && (
@@ -405,7 +427,7 @@ public class CopyDown {
             );
         }
 
-        public Rule findRule (Node node) {
+        public Rule findRule(Node node) {
             for (Rule rule : rules) {
                 if (rule.getFilter().test(node)) {
                     return rule;
@@ -414,11 +436,13 @@ public class CopyDown {
             return null;
         }
 
-        private void addRule (String name, Rule rule) {
+        private void addRule(String name, @NotNull Rule rule) {
             rule.setName(name);
             rules.add(rule);
         }
-        private String cleanAttribute (String attribute) {
+
+        @Contract(pure = true)
+        private @NotNull String cleanAttribute(@NotNull String attribute) {
             return attribute.replaceAll("(\n+\\s*)+", "\n");
         }
     }
